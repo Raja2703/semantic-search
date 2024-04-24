@@ -8,14 +8,30 @@ import { Document } from 'langchain/document';
 export const createPineconeIndex = async (client, indexName, vectorDimension) => {
 	console.log(`checking ${indexName}...`);
 	const existingIndexes = await client.listIndexes();
+	// console.log(existingIndexes.indexes);
 
-	if (!existingIndexes.includes(indexName)) {
+	let indexExists = false;
+
+	for (const index of existingIndexes.indexes) {
+		if (index.name === indexName) {
+			indexExists = true;
+			break;
+		}
+	}
+
+	if (!indexExists) {
 		console.log(`Creating ${indexName}...`);
 
 		await client.createIndex({
 			name: indexName,
 			dimension: vectorDimension,
 			metric: 'cosine',
+			spec: {
+				serverless: {
+					cloud: 'aws',
+					region: 'us-east-1',
+				},
+			},
 		});
 
 		await new Promise((resolve) => setTimeout(resolve, timeout));
@@ -25,49 +41,54 @@ export const createPineconeIndex = async (client, indexName, vectorDimension) =>
 };
 
 export const updatePinecone = async (client, indexName, docs) => {
-	const index = await client.Index(indexName);
+	try {
+		const index = await client.Index(indexName);
 
-	console.log(`Pinecone index retrieved: ${indexName}`);
+		console.log(`Pinecone index retrieved: ${indexName}`);
 
-	for (const doc of docs) {
-		const txtPath = doc.metadata.source;
-		const text = doc.pageContent;
+		for (const doc of docs) {
+			const txtPath = doc.metadata.source;
+			const text = doc.pageContent;
 
-		const textSplitter = new RecursiveCharacterTextSplitter({
-			chunkSize: 1000,
-		});
+			const textSplitter = new RecursiveCharacterTextSplitter({
+				chunkSize: 1000,
+			});
 
-		const chunks = textSplitter.createDocuments([text]);
+			const chunks = await textSplitter.createDocuments([text]);
+			const embeddingsArrays = await new OpenAIEmbeddings({ openAIApiKey: process.env.open_ai_api_key }).embedDocuments(chunks.map((chunk) => chunk.pageContent.replace(/\n/g, '')));
 
-		const embeddingsArrays = await new OpenAIEmbeddings().embedDocuments(chunks.map((chunk) => chunk.pageContent.replace(/\n/g, '')));
+			let batch = [];
+			const batchSize = 100;
 
-		let batch = [];
-		const batchSize = 100;
-
-		for (let idx = 0; idx < chunks.length; idx++) {
-			const chunk = chunks[idx];
-			const vector = {
-				id: `${txtPath}_${idx}`,
-				values: embeddingsArrays[idx],
-				metadata: {
-					...chunks.metadata,
-					loc: JSON.stringify(chunk.metadata.loc),
-					pageContent: chunk.pageContent,
-					txtPath: txtPath,
-				},
-			};
-
-			batch = [...batch, vector];
-
-			if (batch.length === batchSize || idx === chunks.length - 1) {
-				await index.upsert({
-					upsertRequest: {
-						vectors: batch,
+			for (let idx = 0; idx < chunks.length; idx++) {
+				const chunk = chunks[idx];
+				const vector = {
+					id: `${txtPath}_${idx}`,
+					values: embeddingsArrays[idx],
+					metadata: {
+						...chunks.metadata,
+						loc: JSON.stringify(chunk.metadata.loc),
+						pageContent: chunk.pageContent,
+						txtPath: txtPath,
 					},
-				});
-				batch = [];
+				};
+
+				batch.push(vector);
+				console.log('batch type: ', Array.isArray(batch));
+
+				if (Array.isArray(batch) && batch.length > 0) {
+					if (batch.length === batchSize || idx === chunks.length - 1) {
+						await index.upsert(batch);
+
+						batch = [];
+					}
+				} else {
+					console.log('batch is not an array');
+				}
 			}
 		}
+	} catch (err) {
+		console.log(err);
 	}
 };
 
@@ -76,15 +97,11 @@ export const queryPineconeVectorStoreAndQueryLLM = async (client, indexName, que
 
 	const index = client.Index(indexName);
 
-	const queryEmbedding = await new OpenAIEmbeddings().embedQuery(question);
+	const queryEmbedding = await new OpenAIEmbeddings({ openAIApiKey: process.env.open_ai_api_key }).embedQuery(question);
 
 	let queryResponse = await index.query({
-		queryRequest: {
-			topK: 10,
-			vector: queryEmbedding,
-			includeMetaData: true,
-			includeValues: true,
-		},
+		topK: 10,
+		vector: queryEmbedding,
 	});
 
 	console.log(`Found ${queryResponse.matches.length} matches...`);
@@ -92,17 +109,22 @@ export const queryPineconeVectorStoreAndQueryLLM = async (client, indexName, que
 	console.log(`Asking question: ${question}...`);
 
 	if (queryResponse.matches.length) {
-		const llm = new OpenAI({});
+		const llm = new OpenAI({ openAIApiKey: process.env.open_ai_api_key });
 		const chain = loadQAStuffChain(llm);
 
 		const concatenatedPageContent = queryResponse.matches
 			.map((match) => {
-				return match.metadata.pageContent;
+				if (match.metadata && match.metadata.pageContent) {
+					return match.metadata.pageContent;
+				} else {
+					return ''; // or handle the case where metadata or pageContent is missing
+				}
 			})
 			.join(' ');
 
+		console.log('finished');
 		const result = await chain.call({
-			inputDocuments: [new Document({ pageContent: concatenatedPageContent })],
+			input_documents: [new Document({ pageContent: concatenatedPageContent })],
 			question: question,
 		});
 

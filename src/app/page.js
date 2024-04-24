@@ -32,23 +32,28 @@ export default function Home() {
 
 			const json = await result.json();
 			setResult(json.data);
-			setLoading(true);
+			setLoading(false);
 		} catch (err) {
 			console.log(err);
 			setLoading(false);
 		}
 	}
 	return (
-		<main className="bg-white flex min-h-screen flex-col items-center gap-5 p-24">
-			<input className="text-black px-2 py-1 border border-black" onChange={(e) => setQuery(e.target.value)} />
-			<button className="px-2 py-1 rounded-md text-black border border-black" onClick={sendQuery}>
-				ASK AI
-			</button>
-			{loading && <p>Asking AI</p>}
-			{result && <p>{result}</p>}
-			<button onClick={createIndexAndEmbeddings} className="text-black border border-black px-3 py-1 rounded-md">
-				Create Index and Embeddings
-			</button>
-		</main>
+		<div>
+			<nav className="h-16 flex justify-center items-center">
+				<h1 className="text-2xl">Gen AI</h1>
+			</nav>
+			<main className="bg-white flex min-h-screen flex-col items-center gap-5 p-24">
+				<input placeholder="ask me a question" className="text-black px-2 py-1 border border-black" onChange={(e) => setQuery(e.target.value)} />
+				<button className="px-2 py-1 rounded-md text-black border border-black" onClick={sendQuery}>
+					ASK AI
+				</button>
+				{loading && <p className="text-black">Asking AI</p>}
+				{result && <p className="text-black">{result}</p>}
+				<button onClick={createIndexAndEmbeddings} className="text-black border border-black px-3 py-1 rounded-md">
+					Create Index and Embeddings
+				</button>
+			</main>
+		</div>
 	);
 }

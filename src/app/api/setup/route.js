@@ -14,7 +14,7 @@ export async function POST() {
 	});
 
 	const docs = await loader.load();
-	const vectorDimensions = 768;
+	const vectorDimensions = 1536;
 
 	const client = new Pinecone({
 		apiKey: process.env.pinecone_api_key || '',
