@@ -129,7 +129,12 @@ export const queryPineconeVectorStoreAndQueryLLM = async (client, indexName, que
 		});
 
 		console.log(`Answer: ${result.text}`);
-		return result.text;
+
+		if (result.text) {
+			return result.text;
+		} else {
+			return 'I am not sure about your question. Can you ask me a different question?';
+		}
 	} else {
 		console.log('Since there are no matches..GPT 3.5	 will not be queried');
 	}
