@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Text Summarization Project
 
-## Getting Started
+This project is a text summarization application developed using [Next.js]() and [Langchain.js](https://js.langchain.com/docs/get_started/introduction).  
+It utilizes the [OpenAI API](https://platform.openai.com/) and [Pinecone](https://www.pinecone.io/) vector database to summarize PDF documents.
 
-First, run the development server:
+## Features
+- **PDF Input:** Users can upload PDF documents as input to the application.
+- **Text Embedding:** The application employs the OpenAI API to embed the text content of PDF documents.
+- **Vector Database:** Utilizes Pinecone vector database to store the embeddings of the PDF documents.
+- **Querying:** Users can query the database using the OpenAI API to retrieve summarized versions of the documents.
+
+## Technologies Used
+- **Next.js:** A React framework for building server-side rendered and static web applications.
+- **Langchain.js:** A JavaScript library for language processing tasks.
+- **OpenAI API:** Provides access to powerful natural language processing models.
+- **Pinecone Vector Database:** A fast, scalable, and cloud-based vector database for storing and querying high-dimensional data.
+
+## How it Works
+1. **PDF Input:** Users upload PDF documents through the application interface.  
+2. **Text Embedding:** The application extracts text from the uploaded PDF documents and sends it to the OpenAI API for embedding.  
+3. **Vector Storage:** The embedded text is stored in the Pinecone vector database for efficient querying.  
+3. **Querying:** Users can input queries through the application, which are sent to the OpenAI API to find similar documents in the database.  
+4. **Summarization:** The application retrieves the most relevant documents based on the query and provides summarized versions to the user.  
+
+## To use this application
 
 ```bash
+git clone git@github.com:Raja2703/semantic-search.git
+cd semantic-search
+
+```
+install dependencies using
+
+```bash
+npm install
+```
+**Set up accounts and obtain API keys for OpenAI and Pinecone.**
+
+**Create a .env file and paste the api keys in**
+```
+pinecone_api_key =  
+pinecone_env =  
+open_ai_api_key =  
+```
+
+run the application
+```
 npm run dev
 # or
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
